@@ -160,7 +160,7 @@ public class RestGlucosa {
             boolean insertado = cm.insertMedida(medida);
             if (!insertado) {
                 return Response.serverError()
-                        .entity("{\"result\":\"No se pudo guardar la medida \"}")
+                        .entity("{\"result\":\"No se pudo guardar la medida\"}")
                         .build();
             }
             return Response.status(Response.Status.CREATED)
