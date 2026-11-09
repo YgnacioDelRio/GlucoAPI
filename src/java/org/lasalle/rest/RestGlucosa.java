@@ -45,7 +45,7 @@ public class RestGlucosa {
             @QueryParam("nombre") String nombre
     ){
         String respuesta = """
-                           {"response":"Hola %s desde Java"}
+                           {"response":"Hola %s desde Java"
                            """;
         respuesta = String.format(respuesta, nombre);
         return Response.ok(respuesta).build();
@@ -79,7 +79,7 @@ public class RestGlucosa {
         }catch (Exception e){
             e.printStackTrace();
             out = """
-                  {"result": "Lista vacia"}
+                  {"result": "Lista vacia"
                   """;
         }
         
