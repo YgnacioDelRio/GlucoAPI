@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlucoAPI - Health Blood Analysis Dashboard & Sandbox</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        clinical: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#026aa7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        blood: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            500: '#e11d48',
+                            600: '#be123c',
+                            700: '#9f1239',
+                            800: '#881337',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for Code Viewers */
+        pre::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        pre::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        pre::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+    </style>
+</head>
+<body class="h-full font-sans text-slate-800 flex flex-col antialiased selection:bg-blood-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Brand Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blood-700 via-blood-600 to-red-500 flex items-center justify-center text-white shadow-md shadow-blood-500/20">
+                        <i data-lucide="droplet" class="w-6 h-6 fill-current"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-bold text-slate-900 text-lg tracking-tight">Gluco<span class="text-blood-600">.API</span></span>
+                            <span class="text-xs bg-clinical-50 text-clinical-600 px-2 py-0.5 rounded-full font-medium border border-clinical-100">v1.2.0</span>
+                        </div>
+                        <p class="text-xs text-slate-500 hidden sm:block">Plataforma Dev & Sandbox de Análisis Hematológico</p>
+                    </div>
+                </div>
+
+                <!-- Environment & Status indicator -->
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200 text-xs font-medium">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="hidden md:inline">Servidores Operativos</span> (Latency: 24ms)
+                    </div>
+                    <button onclick="presetPresetsMenu()" class="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>Cargar Casos de Prueba</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-slate-50 border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex space-x-1 sm:space-x-8 -mb-px overflow-x-auto" aria-label="Tabs">
+                    <button onclick="switchTab('sandbox')" id="tab-btn-sandbox" class="tab-btn active border-blood-600 text-blood-700 font-semibold py-3 px-1 border-b-2 text-sm flex items-center space-x-2 whitespace-nowrap">
+                        <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                        <span>API Sandbox & Tester</span>
+                    </button>
+                    <button onclick="switchTab('docs')" id="tab-btn-docs" class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <span>Documentación de Endpoints</span>
+                    </button>
+                    <button onclick="switchTab('guide')" id="tab-btn-guide" class="tab-btn border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        <span>Guía de Parámetros y Valores</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Main Dynamic Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== TAB 1: API SANDBOX & TESTER ==================== -->
+        <section id="tab-sandbox" class="tab-content block space-y-6">
+            
+            <!-- Quick Presets Selector Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-2 text-sm text-slate-700 font-medium">
+                    <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                    <span>Cargar Perfil Clínico Predefinido:</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="applyPreset('normal')" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold transition-all">
+                        ✓ Paciente Saludable (Valores Normales)
+                    </button>
+                    <button onclick="applyPreset('anemia')" class="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold transition-all">
+                        ⚠️ Alerta Anemia Moderada
+                    </button>
+                    <button onclick="applyPreset('metabolic')" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-all">
+                        🚨 Síndrome Metabólico / Riesgo Alto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sandbox Grid Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left Column: Input Payload Form (5 cols) -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 bg-blood-600 text-white rounded font-mono text-xs font-bold">POST</span>
+                            <span class="font-mono text-xs text-slate-600 font-semibold">/api/v1/health/blood-analysis</span>
+                        </div>
+                        <button onclick="resetForm()" class="text-slate-400 hover:text-slate-600 p-1 rounded" title="Restablecer campos">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <form id="blood-form" onsubmit="handleFormSubmit(event)" class="p-5 flex-1 flex flex-col justify-between space-y-5">
+                        
+                        <!-- Metadata / Patient Info Section -->
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1">
+                                <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                                <span>Datos del Paciente</span>
+                            </h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Edad</label>
+                                    <input type="number" id="patient_age" value="38" min="1" max="120" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 transition-all outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Sexo</label>
+                                    <select id="patient_gender" class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 transition-all outline-none bg-white">
+                                        <option value="male">Masculino</option>
+                                        <option value="female">Femenino</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Ayuno (hrs)</label>
+                                    <input type="number" id="fasting_hours" value="10" min="0" max="24" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 focus:border-clinical-500 transition-all outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Biometría Hemática Section -->
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <h3 class="text-xs font-bold text-blood-700 uppercase tracking-wider flex items-center space-x-1">
+                                <i data-lucide="droplet" class="w-3.5 h-3.5 text-blood-600"></i>
+                                <span>Biometría Hemática</span>
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Hemoglobina</label>
+                                        <span class="text-[10px] text-slate-400">g/dL</span>
+                                    </div>
+                                    <input type="number" step="0.1" id="hemoglobin" value="14.5" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Leucocitos</label>
+                                        <span class="text-[10px] text-slate-400">x10³/µL</span>
+                                    </div>
+                                    <input type="number" step="0.1" id="leukocytes" value="6.8" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Plaquetas</label>
+                                        <span class="text-[10px] text-slate-400">x10³/µL</span>
+                                    </div>
+                                    <input type="number" step="1" id="platelets" value="240" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Hematocrito</label>
+                                        <span class="text-[10px] text-slate-400">%</span>
+                                    </div>
+                                    <input type="number" step="0.1" id="hematocrit" value="43.2" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Química Sanguínea Section -->
+                        <div class="space-y-3 pt-2 border-t border-slate-100">
+                            <h3 class="text-xs font-bold text-clinical-700 uppercase tracking-wider flex items-center space-x-1">
+                                <i data-lucide="test-tube-2" class="w-3.5 h-3.5 text-clinical-600"></i>
+                                <span>Química Sanguínea Perfil Básico</span>
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Glucosa en Ayunas</label>
+                                        <span class="text-[10px] text-slate-400">mg/dL</span>
+                                    </div>
+                                    <input type="number" step="1" id="glucose" value="88" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Colesterol Total</label>
+                                        <span class="text-[10px] text-slate-400">mg/dL</span>
+                                    </div>
+                                    <input type="number" step="1" id="cholesterol" value="185" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Triglicéridos</label>
+                                        <span class="text-[10px] text-slate-400">mg/dL</span>
+                                    </div>
+                                    <input type="number" step="1" id="triglycerides" value="120" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label class="text-xs font-medium text-slate-700">Creatinina</label>
+                                        <span class="text-[10px] text-slate-400">mg/dL</span>
+                                    </div>
+                                    <input type="number" step="0.1" id="creatinine" value="0.9" required class="w-full text-xs p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-clinical-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Submit Button -->
+                        <div class="pt-3">
+                            <button type="submit" id="submit-btn" class="w-full py-3 px-4 bg-gradient-to-r from-blood-700 via-blood-600 to-clinical-600 hover:from-blood-800 hover:to-clinical-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center space-x-2 text-sm group">
+                                <i data-lucide="send" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+                                <span>Ejecutar Análisis (Enviar Payload)</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Interactive Results & Visual Indicators (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    
+                    <!-- Global Risk Score & Medical Diagnostics Header -->
+                    <div id="results-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 relative overflow-hidden transition-all">
+                        
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4 mb-5">
+                            <div>
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Diagnóstico Automatizado</span>
+                                <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                    <span>Estado Global de Salud Hematológica</span>
+                                </h2>
+                            </div>
+                            <!-- Dynamic Health Badge -->
+                            <div id="health-status-badge" class="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold flex items-center space-x-1.5">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                <span id="health-status-text">Óptimo / Normal</span>
+                            </div>
+                        </div>
+
+                        <!-- Visual Gauges Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="indicators-container">
+                            <!-- Dynamic Content Rendered by JS -->
+                        </div>
+
+                        <!-- Diagnostic Insights & AI Recommendations Panel -->
+                        <div class="mt-6 bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                                <i data-lucide="stethoscope" class="w-4 h-4 text-clinical-600"></i>
+                                <span>Recomendaciones Clínicas y Alertas Automáticas</span>
+                            </h4>
+                            <ul id="recommendations-list" class="space-y-2 text-xs text-slate-600">
+                                <!-- Dynamic List Items -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- JSON API Response Viewer (Tabs: Formatted / Raw Code) -->
+                    <div class="bg-slate-900 rounded-2xl shadow-xl overflow-hidden border border-slate-800">
+                        <div class="bg-slate-800/80 px-4 py-3 flex justify-between items-center border-b border-slate-700">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex space-x-1.5">
+                                    <div class="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                                    <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                                    <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                                </div>
+                                <span class="text-xs font-mono text-slate-300">HTTP/1.1 <span id="response-status-code" class="text-emerald-400 font-bold">200 OK</span></span>
+                                <span class="text-[11px] font-mono text-slate-400 hidden sm:inline" id="response-time">18 ms</span>
+                            </div>
+                            <button onclick="copyToClipboard('json-response-code', 'Copiado JSON')" class="text-slate-400 hover:text-white text-xs font-mono px-2.5 py-1 rounded bg-slate-700/50 hover:bg-slate-700 transition flex items-center space-x-1">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <span>Copiar JSON</span>
+                            </button>
+                        </div>
+                        <div class="p-4 overflow-x-auto max-h-[320px]">
+                            <pre id="json-response-code" class="text-xs font-mono text-emerald-400 leading-relaxed"></pre>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: API DOCUMENTATION (SWAGGER/POSTMAN STYLE) ==================== -->
+        <section id="tab-docs" class="tab-content hidden space-y-6">
+            
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="max-w-3xl">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-2">Especificación API de Sangre v1</h2>
+                    <p class="text-slate-600 text-sm leading-relaxed">
+                        Documentación técnica y endpoints RESTful para integraciones de laboratorio, historia clínica electrónica (EHR) y aplicaciones de salud personal. Todas las peticiones deben incluir la cabecera <code class="bg-slate-100 text-blood-700 px-1.5 py-0.5 rounded font-mono text-xs">Authorization: Bearer YOUR_API_KEY</code>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Endpoints List -->
+            <div class="space-y-4">
+                
+                <!-- ENDPOINT 1: POST Analyze Blood -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-blood-600 text-white font-mono text-xs font-bold rounded-lg shadow-sm">POST</span>
+                            <span class="font-mono text-sm font-semibold text-slate-800">/api/v1/health/blood-analysis</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 bg-white px-2.5 py-1 rounded border border-slate-200">Procesamiento síncrono biológico</span>
+                    </div>
+
+                    <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <h4 class="text-sm font-bold text-slate-900">Descripción</h4>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Evalúa los biomarcadores sanguíneos estándar, clasifica los rangos de riesgo por sexo y edad, y genera diagnósticos preventivos con sugerencias.
+                            </p>
+
+                            <h4 class="text-sm font-bold text-slate-900 pt-2">Parámetros del Body (JSON)</h4>
+                            <div class="border border-slate-200 rounded-lg overflow-hidden text-xs">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-2.5">Campo</th>
+                                            <th class="p-2.5">Tipo</th>
+                                            <th class="p-2.5">Requerido</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 font-mono text-[11px]">
+                                        <tr><td class="p-2.5 text-blood-700">patient_age</td><td class="p-2.5 text-slate-500">integer</td><td class="p-2.5 text-emerald-600 font-bold">Sí</td></tr>
+                                        <tr><td class="p-2.5 text-blood-700">gender</td><td class="p-2.5 text-slate-500">string ("male"|"female")</td><td class="p-2.5 text-emerald-600 font-bold">Sí</td></tr>
+                                        <tr><td class="p-2.5 text-blood-700">hemoglobin</td><td class="p-2.5 text-slate-500">float (g/dL)</td><td class="p-2.5 text-emerald-600 font-bold">Sí</td></tr>
+                                        <tr><td class="p-2.5 text-blood-700">glucose</td><td class="p-2.5 text-slate-500">float (mg/dL)</td><td class="p-2.5 text-emerald-600 font-bold">Sí</td></tr>
+                                        <tr><td class="p-2.5 text-blood-700">cholesterol</td><td class="p-2.5 text-slate-500">float (mg/dL)</td><td class="p-2.5 text-emerald-600 font-bold">Sí</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Code Example Snippets -->
+                        <div class="bg-slate-900 rounded-xl p-4 text-xs font-mono text-slate-200 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800">
+                                    <span class="text-slate-400 text-[11px]">Ejemplo Petición (cURL)</span>
+                                    <button onclick="copyToClipboard('curl-example-1', 'cURL copiado')" class="text-slate-400 hover:text-white text-[11px] flex items-center space-x-1">
+                                        <i data-lucide="copy" class="w-3 h-3"></i>
+                                        <span>Copiar</span>
+                                    </button>
+                                </div>
+                                <pre id="curl-example-1" class="text-emerald-400 overflow-x-auto whitespace-pre-wrap">curl -X POST "https://api.hemalab.health/v1/health/blood-analysis" \
+  -H "Authorization: Bearer hl_live_8f93a21" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patient_age": 38,
+    "gender": "male",
+    "hemoglobin": 14.5,
+    "leukocytes": 6.8,
+    "glucose": 88,
+    "cholesterol": 185
+  }'</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ENDPOINT 2: GET Ranges Reference -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-clinical-600 text-white font-mono text-xs font-bold rounded-lg shadow-sm">GET</span>
+                            <span class="font-mono text-sm font-semibold text-slate-800">/api/v1/blood/reference-ranges</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 bg-white px-2.5 py-1 rounded border border-slate-200">Catálogo de Valores Clínicos</span>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-xs text-slate-600 mb-4">Retorna los intervalos normales mínimos y máximos de referencia biomédica aceptados según el perfil del paciente.</p>
+                        <div class="bg-slate-900 rounded-xl p-4 text-xs font-mono text-emerald-400 overflow-x-auto">
+<pre>{
+  "status": "success",
+  "reference_ranges": {
+    "hemoglobin_male": { "min": 13.8, "max": 17.2, "unit": "g/dL" },
+    "hemoglobin_female": { "min": 12.1, "max": 15.1, "unit": "g/dL" },
+    "glucose_fasting": { "min": 70, "max": 99, "unit": "mg/dL" },
+    "cholesterol_total": { "min": 125, "max": 200, "unit": "mg/dL" }
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ENDPOINT 3: GET Patient History -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-clinical-600 text-white font-mono text-xs font-bold rounded-lg shadow-sm">GET</span>
+                            <span class="font-mono text-sm font-semibold text-slate-800">/api/v1/patients/{patient_id}/history</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 bg-white px-2.5 py-1 rounded border border-slate-200">Histórico de Muestras</span>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-xs text-slate-600">Obtiene la serie temporal de análisis hematológicos realizados por un paciente para evaluar tendencias clínicas.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: GUIDES & PARAMETERS ==================== -->
+        <section id="tab-guide" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-900 mb-2">Guía Médica de Parámetros de Sangre</h2>
+                <p class="text-slate-600 text-xs">Explicación técnica de cada biomarcador evaluado por el motor de la API HemaLab.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                
+                <!-- Card 1 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Hemoglobina (Hb)</h3>
+                        <span class="text-[10px] bg-blood-50 text-blood-700 px-2 py-0.5 rounded font-mono font-bold">Biometría</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Proteína en glóbulos rojos encargada de transportar oxígeno. Valores bajos indican anemia; elevados pueden indicar deshidratación o policitemia.</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango deseable:</span> 12 - 17 g/dL
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Leucocitos (Glóbulos Blancos)</h3>
+                        <span class="text-[10px] bg-blood-50 text-blood-700 px-2 py-0.5 rounded font-mono font-bold">Biometría</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Células del sistema inmune. Elevaciones (leucocitosis) sugieren infección o inflamación activa; descensos (leucopenia) vulnerabilidad inmunológica.</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango deseable:</span> 4,500 - 11,000 /µL
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Glucosa en Ayunas</h3>
+                        <span class="text-[10px] bg-clinical-50 text-clinical-700 px-2 py-0.5 rounded font-mono font-bold">Química</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Nivel de azúcar en sangre. Pilar diagnóstico para Diabetes Mellitus (≥126 mg/dL) o Prediabetes (100-125 mg/dL).</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango óptimo:</span> 70 - 99 mg/dL
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Colesterol Total</h3>
+                        <span class="text-[10px] bg-clinical-50 text-clinical-700 px-2 py-0.5 rounded font-mono font-bold">Química</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Lípido esencial. Concentraciones altas (>200 mg/dL) incrementan riesgo de placa aterosclerótica y eventos cardiovasculares.</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango deseable:</span> &lt; 200 mg/dL
+                    </div>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Triglicéridos</h3>
+                        <span class="text-[10px] bg-clinical-50 text-clinical-700 px-2 py-0.5 rounded font-mono font-bold">Química</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Tipo principal de grasa circulante. Relacionado estrechamente con dieta, consumo de carbohidratos refinados y grasa visceral.</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango deseable:</span> &lt; 150 mg/dL
+                    </div>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm">Creatinina</h3>
+                        <span class="text-[10px] bg-clinical-50 text-clinical-700 px-2 py-0.5 rounded font-mono font-bold">Química</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">Subproducto del metabolismo muscular eliminado por los riñones. Indicador clave de la función de filtración renal.</p>
+                    <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                        <span class="font-semibold text-slate-700">Rango deseable:</span> 0.6 - 1.2 mg/dL
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div>
+                &copy; 2026 HemaLab API Engine. Plataforma de Desarrollo de APIs Médicas.
+            </div>
+            <div class="flex space-x-4 text-slate-400">
+                <a href="#" class="hover:text-slate-600">Términos de Servicio</a>
+                <a href="#" class="hover:text-slate-600">Privacidad HIPAA / GDPR</a>
+                <a href="#" class="hover:text-slate-600">Soporte API</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic & Interactive Engine -->
+    <script>
+        // Reference Ranges Config
+        const REFERENCE_RANGES = {
+            hemoglobin: { male: { min: 13.8, max: 17.2 }, female: { min: 12.1, max: 15.1 }, unit: 'g/dL', name: 'Hemoglobina' },
+            leukocytes: { min: 4.5, max: 11.0, unit: 'x10³/µL', name: 'Leucocitos' },
+            platelets: { min: 150, max: 450, unit: 'x10³/µL', name: 'Plaquetas' },
+            hematocrit: { male: { min: 40.7, max: 50.3 }, female: { min: 36.1, max: 44.3 }, unit: '%', name: 'Hematocrito' },
+            glucose: { min: 70, max: 99, unit: 'mg/dL', name: 'Glucosa Ayunas' },
+            cholesterol: { min: 125, max: 200, unit: 'mg/dL', name: 'Colesterol Total' },
+            triglycerides: { min: 35, max: 150, unit: 'mg/dL', name: 'Triglicéridos' },
+            creatinine: { min: 0.6, max: 1.3, unit: 'mg/dL', name: 'Creatinina' }
+        };
+
+        // Presets Data
+        const PRESETS = {
+            normal: {
+                patient_age: 34,
+                patient_gender: 'male',
+                fasting_hours: 12,
+                hemoglobin: 15.2,
+                leukocytes: 6.5,
+                platelets: 250,
+                hematocrit: 45.0,
+                glucose: 85,
+                cholesterol: 175,
+                triglycerides: 110,
+                creatinine: 0.9
+            },
+            anemia: {
+                patient_age: 29,
+                patient_gender: 'female',
+                fasting_hours: 10,
+                hemoglobin: 9.8, // Low
+                leukocytes: 5.2,
+                platelets: 210,
+                hematocrit: 31.0, // Low
+                glucose: 82,
+                cholesterol: 160,
+                triglycerides: 95,
+                creatinine: 0.7
+            },
+            metabolic: {
+                patient_age: 52,
+                patient_gender: 'male',
+                fasting_hours: 12,
+                hemoglobin: 16.1,
+                leukocytes: 11.8, // Slightly high
+                platelets: 380,
+                hematocrit: 48.0,
+                glucose: 142, // High (Diabetic range)
+                cholesterol: 248, // High
+                triglycerides: 280, // High
+                creatinine: 1.5 // High
+            }
+        };
+
+        // Initialize Icons & Load default view on start
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            runAnalysisSimulation(); // Initial calculation on load
+        });
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-blood-600', 'text-blood-700', 'font-semibold');
+                btn.classList.add('border-transparent', 'text-slate-500');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('border-blood-600', 'text-blood-700', 'font-semibold');
+            activeBtn.classList.remove('border-transparent', 'text-slate-500');
+        }
+
+        // Apply Presets to Form Inputs
+        function applyPreset(presetKey) {
+            const data = PRESETS[presetKey];
+            if (!data) return;
+
+            Object.keys(data).forEach(key => {
+                const el = document.getElementById(key);
+                if (el) el.value = data[key];
+            });
+
+            showToast(`Preset "${presetKey.toUpperCase()}" cargado con éxito.`, 'info');
+            runAnalysisSimulation();
+        }
+
+        // Reset Form Values
+        function resetForm() {
+            applyPreset('normal');
+        }
+
+        // Form Submit Handler (Simulates REST API Call)
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // UI Button Loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Procesando en Servidor...</span>`;
+            lucide.createIcons();
+
+            setTimeout(() => {
+                runAnalysisSimulation();
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>Ejecutar Análisis (Enviar Payload)</span>`;
+                lucide.createIcons();
+                showToast('API /api/v1/health/blood-analysis respondida 200 OK', 'success');
+            }, 350);
+        }
+
+        // Core Medical Analysis Calculation Simulation Engine
+        function runAnalysisSimulation() {
+            const gender = document.getElementById('patient_gender').value;
+            const age = parseInt(document.getElementById('patient_age').value);
+
+            const inputs = {
+                hemoglobin: parseFloat(document.getElementById('hemoglobin').value),
+                leukocytes: parseFloat(document.getElementById('leukocytes').value),
+                platelets: parseFloat(document.getElementById('platelets').value),
+                hematocrit: parseFloat(document.getElementById('hematocrit').value),
+                glucose: parseFloat(document.getElementById('glucose').value),
+                cholesterol: parseFloat(document.getElementById('cholesterol').value),
+                triglycerides: parseFloat(document.getElementById('triglycerides').value),
+                creatinine: parseFloat(document.getElementById('creatinine').value)
+            };
+
+            const indicatorsResults = [];
+            const alerts = [];
+            let abnormalCount = 0;
+            let criticalCount = 0;
+
+            // Evaluate each indicator
+            Object.keys(inputs).forEach(key => {
+                const val = inputs[key];
+                const config = REFERENCE_RANGES[key];
+                
+                // Get range depending on gender if specified
+                let min = config.min;
+                let max = config.max;
+                if (config[gender]) {
+                    min = config[gender].min;
+                    max = config[gender].max;
+                }
+
+                let status = 'normal'; // 'low', 'normal', 'high'
+                let level = 'green'; // 'green', 'amber', 'red'
+
+                if (val < min) {
+                    status = 'bajo';
+                    const deviation = (min - val) / min;
+                    level = deviation > 0.2 ? 'red' : 'amber';
+                    abnormalCount++;
+                    if(level === 'red') criticalCount++;
+                } else if (val > max) {
+                    status = 'alto';
+                    const deviation = (val - max) / max;
+                    level = deviation > 0.2 ? 'red' : 'amber';
+                    abnormalCount++;
+                    if(level === 'red') criticalCount++;
+                }
+
+                indicatorsResults.push({
+                    key,
+                    name: config.name,
+                    value: val,
+                    unit: config.unit,
+                    min,
+                    max,
+                    status,
+                    level
+                });
+            });
+
+            // Generate Recommendations & Specific Medical Alerts
+            if (inputs.hemoglobin < (gender === 'male' ? 13.8 : 12.1)) {
+                alerts.push(`<strong>Posible Anemia:</strong> Nivel de hemoglobina bajo (${inputs.hemoglobin} g/dL). Se sugiere evaluar niveles de Hierro Sérico y Ferritina.`);
+            }
+            if (inputs.glucose >= 126) {
+                alerts.push(`<strong>Criterio de Hiperglucemia / Diabetes:</strong> Glucosa en ayunas elevada (${inputs.glucose} mg/dL). Confirmar con prueba de Hemoglobina Glicada (HbA1c).`);
+            } else if (inputs.glucose >= 100) {
+                alerts.push(`<strong>Prediabetes:</strong> Glucosa alterada en ayunas (${inputs.glucose} mg/dL). Recomendado ajuste nutricional bajo en azúcares refinados.`);
+            }
+
+            if (inputs.cholesterol > 200 || inputs.triglycerides > 150) {
+                alerts.push(`<strong>Perfil Lipídico Alterado:</strong> Riesgo cardiovascular moderado por lípidos elevados. Evaluar perfil HDL/LDL.`);
+            }
+
+            if (inputs.creatinine > 1.3) {
+                alerts.push(`<strong>Elevación de Creatinina:</strong> (${inputs.creatinine} mg/dL). Sugiere valorar la Tasa de Filtrado Glomerular (eGFR).`);
+            }
+
+            if (alerts.length === 0) {
+                alerts.push(`Todos los biomarcadores analizados se encuentran dentro de los rangos fisiológicos normales para la edad (${age} años) y sexo.`);
+            }
+
+            // Overall Global Status
+            let globalStatusText = "Óptimo / Normal";
+            let globalStatusClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+            let globalIcon = "check-circle-2";
+
+            if (criticalCount > 0) {
+                globalStatusText = "Atención: Valores Críticos Fuera de Rango";
+                globalStatusClass = "bg-rose-50 text-rose-700 border-rose-200";
+                globalIcon = "alert-octagon";
+            } else if (abnormalCount > 0) {
+                globalStatusText = "Atención Preventiva (Leves Desviaciones)";
+                globalStatusClass = "bg-amber-50 text-amber-700 border-amber-200";
+                globalIcon = "alert-triangle";
+            }
+
+            // Render Results GUI Components
+            renderIndicatorsUI(indicatorsResults);
+            renderGlobalBadge(globalStatusText, globalStatusClass, globalIcon);
+            renderRecommendations(alerts);
+            renderJSONResponse(inputs, indicatorsResults, globalStatusText, alerts);
+        }
+
+        // Render Gauges / Bar Indicators in UI
+        function renderIndicatorsUI(indicators) {
+            const container = document.getElementById('indicators-container');
+            container.innerHTML = '';
+
+            indicators.forEach(item => {
+                let statusColorClass = 'text-emerald-600 bg-emerald-50 border-emerald-200';
+                let barBg = 'bg-emerald-500';
+
+                if (item.level === 'amber') {
+                    statusColorClass = 'text-amber-700 bg-amber-50 border-amber-200';
+                    barBg = 'bg-amber-500';
+                } else if (item.level === 'red') {
+                    statusColorClass = 'text-rose-700 bg-rose-50 border-rose-200';
+                    barBg = 'bg-rose-500';
+                }
+
+                // Calculation for visual marker percentage
+                const rangeSpan = (item.max - item.min) * 1.6;
+                const minScale = Math.max(0, item.min - (item.max - item.min) * 0.3);
+                let percentage = ((item.value - minScale) / rangeSpan) * 100;
+                percentage = Math.min(Math.max(percentage, 5), 95); // clamp
+
+                const html = `
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs font-bold text-slate-800">${item.name}</span>
+                                <div class="text-[11px] text-slate-400">Rango: ${item.min} - ${item.max} ${item.unit}</div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-extrabold font-mono text-slate-900">${item.value}</span>
+                                <span class="text-[10px] text-slate-500">${item.unit}</span>
+                            </div>
+                        </div>
+
+                        <!-- Range Progress Bar -->
+                        <div class="space-y-1">
+                            <div class="w-full bg-slate-200 h-2 rounded-full relative overflow-hidden">
+                                <div class="h-full ${barBg} transition-all duration-500 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px]">
+                                <span class="text-slate-400">Min: ${item.min}</span>
+                                <span class="px-2 py-0.5 rounded border text-[10px] font-semibold ${statusColorClass}">
+                                    ${item.status === 'normal' ? 'Normal' : item.status.toUpperCase()}
+                                </span>
+                                <span class="text-slate-400">Max: ${item.max}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function renderGlobalBadge(text, className, iconName) {
+            const badge = document.getElementById('health-status-badge');
+            badge.className = `px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold flex items-center space-x-1.5 border ${className}`;
+            badge.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i><span>${text}</span>`;
+            lucide.createIcons();
+        }
+
+        function renderRecommendations(alerts) {
+            const list = document.getElementById('recommendations-list');
+            list.innerHTML = '';
+            alerts.forEach(alertText => {
+                list.innerHTML += `
+                    <li class="flex items-start space-x-2">
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-clinical-600 mt-0.5 shrink-0"></i>
+                        <span>${alertText}</span>
+                    </li>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderJSONResponse(inputs, results, globalStatus, alerts) {
+            const codeElem = document.getElementById('json-response-code');
+            const payload = {
+                status: "200_OK",
+                timestamp: new Date().toISOString(),
+                request_id: "req_" + Math.random().toString(36).substring(2, 9),
+                analysis_summary: {
+                    global_health_status: globalStatus,
+                    evaluated_biomarkers_count: results.length,
+                    alerts_count: alerts.length
+                },
+                biomarkers_detail: results.map(r => ({
+                    biomarker: r.key,
+                    display_name: r.name,
+                    value: r.value,
+                    unit: r.unit,
+                    reference_interval: { min: r.min, max: r.max },
+                    status: r.status
+                })),
+                clinical_recommendations: alerts
+            };
+
+            codeElem.textContent = JSON.stringify(payload, null, 2);
+        }
+
+        // Copy Utility Function
+        function copyToClipboard(elementId, message) {
+            const text = document.getElementById(elementId).textContent;
+            
+            // Fallback execCommand for iframe security compliance
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            showToast(message || 'Copiado al portapapeles', 'success');
+        }
+
+        // Notification Toast System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = 'bg-slate-900 text-white';
+            if (type === 'success') bg = 'bg-emerald-800 text-white';
+            
+            toast.className = `${bg} text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 pointer-events-auto flex items-center space-x-2 transition-all transform translate-y-2 opacity-0`;
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-emerald-400"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Auto Remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
