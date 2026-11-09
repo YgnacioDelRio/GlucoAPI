@@ -10,8 +10,8 @@ create table usuario(
     email varchar(50) not null
 );
 
--- insert into usuario values(0, "Arturo", "Del Rio", "Rayas", "aaa@gmail.com")
--- select * from usuario
+#insert into usuario values(0, "Arturo", "Del Rio", "Rayas", "aaa@gmail.com")
+#select * from usuario
 
 create table medida(
 	idMedida int not null primary key auto_increment,
