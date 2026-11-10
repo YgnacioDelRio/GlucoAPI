@@ -1,19 +1,18 @@
 FROM tomcat:11.0-jdk21
 
-# Instalar MySQL Server y bash
-RUN apt-get update && apt-get install -y mysql-server bash && rm -rf /var/lib/apt/lists/*
+# Instalar MySQL Server y cliente
+RUN apt-get update && \
+    apt-get install -y mysql-server mysql-client bash && \
+    rm -rf /var/lib/apt/lists/*
 
-# Limpiar las aplicaciones por defecto de Tomcat
-RUN rm -rf /usr/local/tomcat/webapps/ROOT
-RUN rm -rf /usr/local/tomcat/webapps/ROOT.war
+# Limpiar aplicaciones por defecto de Tomcat
+RUN rm -rf /usr/local/tomcat/webapps/ROOT /usr/local/tomcat/webapps/ROOT.war
 
-# Copiar el .war del proyecto
+# Copiar archivos
 COPY dist/API_HealthBlood.war /usr/local/tomcat/webapps/ROOT.war
-
-# Copiar el script .sql a la ruta donde lo leerá el entrypoint
 COPY dist/GlucoAPI.sql /docker-entrypoint-initdb.d/GlucoAPI.sql
 
-# Copiar y dar permisos de ejecución al script entrypoint
+# Configurar script de entrada
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
