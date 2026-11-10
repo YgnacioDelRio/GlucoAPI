@@ -1,30 +1,33 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package org.lasalle.controller;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-/**
- *
- * @author Halo
- */
+
 public class ConnectionMysql {
     Connection conn;
     
     public Connection open(){
-        String user = "root"; //usuario mysql
-        String password = "root";//password
-        String db_name = "gluco_api";
-        String url = "jdbc:mysql://127.0.0.1:3306/"+db_name;
-        String parametros = "?useSSL=false&useUnicode=true&characterEncoding=utf-8";
+        String host = System.getenv("DB_HOST");
+        String port = System.getenv("DB_PORT");
+        String user = System.getenv("DB_USER");
+        String password = System.getenv("DB_PASS");
+        String db_name = System.getenv("DB_NAME");
         
-        try{
+        // Si no existen variables de entorno (entorno local), usa valores por defecto
+        if (host == null) host = "TU_HOST_AIVEN";
+        if (port == null) port = "TU_PUERTO_AIVEN";
+        if (user == null) user = "TU_USER_AIVEN";
+        if (password == null) password = "TU_PASSWORD_AIVEN";
+        if (db_name == null) db_name = "defaultdb";
+
+        String url = "jdbc:mysql://" + host + ":" + port + "/" + db_name;
+        String parametros = "?useSSL=true&requireSSL=true&verifyServerCertificate=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf-8";
+        
+        try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection(url+parametros,user,password);
+            conn = DriverManager.getConnection(url + parametros, user, password);
             return conn;
-        }catch(Exception e){
+        } catch(Exception e) {
             e.printStackTrace();
             return null;
         }
@@ -32,9 +35,9 @@ public class ConnectionMysql {
 
     public void close() {
         if(conn != null){
-            try{
+            try {
                 conn.close();
-            }catch (Exception e){
+            } catch (Exception e){
                 e.printStackTrace();
             }
         }
