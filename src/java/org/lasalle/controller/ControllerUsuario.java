@@ -24,29 +24,17 @@ public class ControllerUsuario {
         //declaramos el query a ejecutar
         String sql = "SELECT * FROM usuario";
         ConnectionMysql connMysql = new ConnectionMysql();
-        try (Connection conn = connMysql.open();
-             PreparedStatement pstm = conn.prepareStatement(sql);
-             ResultSet rs = pstm.executeQuery()) {
-            while(rs.next()){
-                lista.add(fillUsuario(rs));
-            }
+        Connection conn = connMysql.open();
+        PreparedStatement pstm = conn.prepareStatement(sql);
+        ResultSet rs = pstm.executeQuery();
+        
+        while(rs.next()){
+            lista.add(fillUsuario(rs));
         }
+        rs.close();
+        connMysql.close();
+        conn.close();
         return lista;
-    }
-    
-    public Usuario getUsuario(int idUsuario) throws SQLException{
-        String sql = "SELECT * FROM usuario WHERE idUsuario = ?";
-        ConnectionMysql connMysql = new ConnectionMysql();
-        try (Connection conn = connMysql.open();
-             PreparedStatement pstm = conn.prepareStatement(sql)) {
-            pstm.setInt(1, idUsuario);
-            try (ResultSet rs = pstm.executeQuery()) {
-                if (rs.next()) {
-                    return fillUsuario(rs);
-                }
-            }
-        }
-        return null;
     }
     
     public Usuario fillUsuario(ResultSet rs) throws SQLException{
