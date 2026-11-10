@@ -17,8 +17,7 @@ public class ConnectionMysql {
         String user = "root"; //usuario mysql
         String password = "root";//password
         String db_name = "gluco_api";
-        // String url = "jdbc:mysql://127.0.0.1:3306/"+db_name; --este es el local
-        String url = "jdbc:mysql://db:3306/"+db_name;
+        String url = "jdbc:mysql://127.0.0.1:3306/"+db_name;
         String parametros = "?useSSL=false&useUnicode=true&characterEncoding=utf-8";
         
         try{
